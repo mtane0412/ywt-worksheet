@@ -1,101 +1,190 @@
-import Image from "next/image";
+'use client'
 
-export default function Home() {
+import { useState, KeyboardEvent, ChangeEvent, useRef, useEffect } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
+import { Switch } from "@/components/ui/switch"
+import { Input } from "@/components/ui/input"
+import { Download, Moon, Sun } from 'lucide-react'
+import html2canvas from 'html2canvas'
+
+export default function YWTWorksheet() {
+  const [yItems, setYItems] = useState<string[]>([])
+  const [wItems, setWItems] = useState<string[]>([])
+  const [tItems, setTItems] = useState<string[]>([])
+  const [isDarkMode, setIsDarkMode] = useState(false)
+  const [isEditingTitle, setIsEditingTitle] = useState(false)
+  const [title, setTitle] = useState('YWT Worksheet')
+  const worksheetRef = useRef<HTMLDivElement>(null)
+  const titleInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    setIsDarkMode(darkModeMediaQuery.matches)
+    document.documentElement.classList.toggle('dark', darkModeMediaQuery.matches)
+
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches)
+      document.documentElement.classList.toggle('dark', e.matches)
+    }
+
+    darkModeMediaQuery.addEventListener('change', handleChange)
+    return () => darkModeMediaQuery.removeEventListener('change', handleChange)
+  }, [])
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>, setter: React.Dispatch<React.SetStateAction<string[]>>) => {
+    if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      const value = e.currentTarget.value.trim()
+      if (value) {
+        setter(prev => [...prev, value])
+        e.currentTarget.value = ''
+      }
+    }
+  }
+
+  const downloadAsPng = async () => {
+    if (worksheetRef.current) {
+      const inputs = worksheetRef.current.querySelectorAll('textarea')
+      inputs.forEach(input => input.style.display = 'none')
+
+      const canvas = await html2canvas(worksheetRef.current, {
+        scale: 2,
+        backgroundColor: isDarkMode ? '#1f2937' : '#ffffff'
+      })
+    
+      inputs.forEach(input => input.style.display = '')
+
+      const link = document.createElement('a')
+      link.download = 'ywt-worksheet.png'
+      link.href = canvas.toDataURL()
+      link.click()
+    }
+  }
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode)
+    document.documentElement.classList.toggle('dark')
+  }
+
+  const handleTitleDoubleClick = () => {
+    setIsEditingTitle(true)
+  }
+
+  const handleTitleChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setTitle(e.target.value)
+  }
+
+  const handleTitleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && !e.nativeEvent.isComposing) {
+      e.preventDefault()
+      setIsEditingTitle(false)
+    }
+  }
+
+  const handleTitleBlur = () => {
+    setIsEditingTitle(false)
+  }
+
+  useEffect(() => {
+    if (isEditingTitle && titleInputRef.current) {
+      titleInputRef.current.focus()
+    }
+  }, [isEditingTitle])
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="https://nextjs.org/icons/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
-
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="https://nextjs.org/icons/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+    <div className={`min-h-screen ${isDarkMode ? 'dark' : ''} bg-white dark:bg-gray-800 transition-colors duration-200`}>
+      <div className="container mx-auto p-4">
+        <div className="flex justify-end mb-4 items-center">
+          <Sun className="h-4 w-4 mr-2 text-gray-800 dark:text-white" />
+          <Switch checked={isDarkMode} onCheckedChange={toggleDarkMode} />
+          <Moon className="h-4 w-4 ml-2 text-gray-800 dark:text-white" />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="https://nextjs.org/icons/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+        <Card className="w-full mb-4 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
+          <div ref={worksheetRef}>
+            <CardHeader>
+              {isEditingTitle ? (
+                <Input
+                  ref={titleInputRef}
+                  value={title}
+                  onChange={handleTitleChange}
+                  onKeyDown={handleTitleKeyDown}
+                  onBlur={handleTitleBlur}
+                  className="text-2xl font-bold"
+                />
+              ) : (
+                <CardTitle 
+                  className="text-2xl font-bold"
+                  onDoubleClick={handleTitleDoubleClick}
+                >
+                  {title}
+                </CardTitle>
+              )}
+            </CardHeader>
+            <CardContent className="grid grid-cols-3 gap-4">
+              <Column 
+                title="やったこと" 
+                items={yItems} 
+                onKeyDown={(e) => handleKeyDown(e, setYItems)} 
+                placeholder="やったことを入力" 
+              />
+              <Column 
+                title="わかったこと" 
+                items={wItems} 
+                onKeyDown={(e) => handleKeyDown(e, setWItems)} 
+                placeholder="わかったことを入力" 
+              />
+              <Column 
+                title="次にやること" 
+                items={tItems} 
+                onKeyDown={(e) => handleKeyDown(e, setTItems)} 
+                placeholder="次にやることを入��" 
+              />
+            </CardContent>
+          </div>
+        </Card>
+        <div className="mt-4 flex justify-center">
+          <Button onClick={downloadAsPng}>
+            <Download className="mr-2 h-4 w-4" /> PNGで保存する
+          </Button>
+        </div>
+        <div className="mt-4 text-center text-gray-500 dark:text-gray-400">
+          <a href="https://github.com/mtane0412">@mtane0412</a>
+        </div>
+      </div>
     </div>
-  );
+  )
+}
+
+interface ColumnProps {
+  title: string
+  items: string[]
+  onKeyDown: (e: KeyboardEvent<HTMLTextAreaElement>) => void
+  placeholder: string
+}
+
+function Column({ title, items, onKeyDown, placeholder }: ColumnProps) {
+  const handleTextareaChange = (e: ChangeEvent<HTMLTextAreaElement>) => {
+    e.target.style.height = 'auto'
+    e.target.style.height = `${e.target.scrollHeight}px`
+  }
+
+  return (
+    <div>
+      <h2 className="text-lg font-semibold mb-2">{title}</h2>
+      <ul className="list-disc pl-5 space-y-1 mb-2">
+        {items.map((item, index) => (
+          <li key={index}>{item}</li>
+        ))}
+      </ul>
+      <Textarea 
+        placeholder={placeholder} 
+        onKeyDown={onKeyDown} 
+        onChange={handleTextareaChange}
+        className="resize-none overflow-hidden"
+        rows={1}
+      />
+    </div>
+  )
 }
